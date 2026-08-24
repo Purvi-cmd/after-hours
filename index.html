@@ -260,6 +260,13 @@
         }
         .poll-option:hover { background-color: #222; }
 
+        .empty-notice {
+            color: #666666;
+            font-style: italic;
+            font-size: 12px;
+            padding: 10px 0;
+        }
+
         .admin-only { display: none; }
         body.is-admin .admin-only { display: inline-block !important; }
         body.is-admin .admin-block { display: block !important; }
@@ -271,7 +278,7 @@
     <div id="access-screen">
         <div class="login-box">
             <h1>AFTER HOURS</h1>
-            <p>Enter VIP Access Code:</p>
+            <p>Enter Passcode:</p>
             <input type="password" id="passcode-input" placeholder="Passcode">
             <button onclick="checkCode()">ENTER</button>
             <div id="error" class="error-msg">ACCESS DENIED</div>
@@ -306,25 +313,23 @@
                         <p style="font-size: 12px;">Vote on tonight's vibe:</p>
                         <div class="poll-option" onclick="votePoll('electronic')">
                             <span>Electronic / EDM</span>
-                            <span id="votes-electronic">14</span>
+                            <span id="votes-electronic">0</span>
                         </div>
                         <div class="poll-option" onclick="votePoll('hiphop')">
                             <span>Hip-Hop / Rap</span>
-                            <span id="votes-hiphop">22</span>
+                            <span id="votes-hiphop">0</span>
                         </div>
                         <div class="poll-option" onclick="votePoll('indie')">
                             <span>Indie / Pop</span>
-                            <span id="votes-indie">9</span>
+                            <span id="votes-indie">0</span>
                         </div>
                     </div>
 
                     <div class="box">
-                        <div class="box-header">🔥 Trending Badges</div>
+                        <div class="box-header">🔥 Badges</div>
                         <div class="badge-container">
-                            <span class="badge badge-host">★ VIP Host</span>
-                            <span class="badge">★ Night Owl</span>
-                            <span class="badge">★ DJ Queue</span>
-                            <span class="badge">★ Early Bird</span>
+                            <span class="badge badge-host">★ Host</span>
+                            <span class="badge">★ Member</span>
                         </div>
                     </div>
                 </div>
@@ -333,16 +338,9 @@
                 <div>
                     <div class="box">
                         <div class="box-header">🎵 Crowd DJ Playlist Queue</div>
-                        <p style="font-size: 12px;">Add tracks for the upcoming weekend meetups:</p>
+                        <p style="font-size: 12px;">Add tracks to the queue:</p>
                         <div id="playlist-queue">
-                            <div class="playlist-item">
-                                <span>1. <strong>FE!N</strong> - Travis Scott <small>(Requested by: Alex)</small></span>
-                                <button class="btn-danger admin-only" onclick="removeElement(this.parentElement)">Delete</button>
-                            </div>
-                            <div class="playlist-item">
-                                <span>2. <strong>Espresso</strong> - Sabrina Carpenter <small>(Requested by: Jordan)</small></span>
-                                <button class="btn-danger admin-only" onclick="removeElement(this.parentElement)">Delete</button>
-                            </div>
+                            <div class="empty-notice" id="queue-empty">No tracks added yet. Submit one below!</div>
                         </div>
                         <br>
                         <input type="text" id="song-input" placeholder="Song Name - Artist">
@@ -350,17 +348,9 @@
                     </div>
 
                     <div class="box">
-                        <div class="box-header">
-                            <span>🎉 Featured Event Drop</span>
-                            <button class="btn-danger admin-only" onclick="removeElement(document.getElementById('featured-party'))">Delete Event</button>
-                        </div>
-                        <div class="party-card" id="featured-party">
-                            <div class="party-title">★ Friday Neon Kickoff</div>
-                            <p><span class="badge badge-host">HOST</span> DJ_Cyber</p>
-                            <p><strong>When:</strong> Friday @ 9:00 PM</p>
-                            <p><strong>RSVP Count:</strong> <span id="rsvp-count">48</span> Going</p>
-                            <p>Glow sticks provided. Hot pink and black attire mandatory!</p>
-                            <button onclick="addRSVP()">I'm Going! (+1 RSVP)</button>
+                        <div class="box-header">🎉 Events & Announcements</div>
+                        <div id="featured-events-feed">
+                            <div class="empty-notice" id="events-empty">No active events listed. Post one in the Parties tab!</div>
                         </div>
                     </div>
                 </div>
@@ -371,53 +361,13 @@
         <div id="friends-page" class="page-view">
             <div class="box">
                 <div class="box-header">🔍 Find & Connect With Friends</div>
-                <input type="text" id="friend-search" placeholder="Search by username or vibe..." onkeyup="filterFriends()">
+                <input type="text" id="friend-search" placeholder="Search by username..." onkeyup="filterFriends()">
             </div>
 
             <div class="box">
                 <div class="box-header">Network Directory</div>
                 <div id="friends-list">
-                    <div class="friend-card" data-username="alex_cyber" data-vibe="synthwave">
-                        <div class="friend-info">
-                            <img src="https://via.placeholder.com/45/ff007f/000000?text=A" class="friend-avatar" alt="Alex">
-                            <div>
-                                <strong>Alex_Cyber</strong> <span class="badge">Night Owl</span><br>
-                                <small style="color: #ff66b2;">Vibe: Synthwave / Beats</small>
-                            </div>
-                        </div>
-                        <div>
-                            <button onclick="addFriend(this)" style="width: auto; padding: 6px 12px; font-size: 11px;">+ Add Friend</button>
-                            <button class="btn-danger admin-only" onclick="banUser(this.parentElement.parentElement, 'Alex_Cyber')">Ban User</button>
-                        </div>
-                    </div>
-
-                    <div class="friend-card" data-username="jordan_vibe" data-vibe="hiphop">
-                        <div class="friend-info">
-                            <img src="https://via.placeholder.com/45/ff007f/000000?text=J" class="friend-avatar" alt="Jordan">
-                            <div>
-                                <strong>Jordan_Vibe</strong> <span class="badge">DJ Queue</span><br>
-                                <small style="color: #ff66b2;">Vibe: Hip-Hop / Rap</small>
-                            </div>
-                        </div>
-                        <div>
-                            <button onclick="addFriend(this)" style="width: auto; padding: 6px 12px; font-size: 11px;">+ Add Friend</button>
-                            <button class="btn-danger admin-only" onclick="banUser(this.parentElement.parentElement, 'Jordan_Vibe')">Ban User</button>
-                        </div>
-                    </div>
-
-                    <div class="friend-card" data-username="synth_queen" data-vibe="indie">
-                        <div class="friend-info">
-                            <img src="https://via.placeholder.com/45/ff007f/000000?text=S" class="friend-avatar" alt="Synth Queen">
-                            <div>
-                                <strong>Synth_Queen</strong> <span class="badge badge-host">VIP Host</span><br>
-                                <small style="color: #ff66b2;">Vibe: Indie / Electro</small>
-                            </div>
-                        </div>
-                        <div>
-                            <button onclick="addFriend(this)" style="width: auto; padding: 6px 12px; font-size: 11px;">+ Add Friend</button>
-                            <button class="btn-danger admin-only" onclick="banUser(this.parentElement.parentElement, 'Synth_Queen')">Ban User</button>
-                        </div>
-                    </div>
+                    <div class="empty-notice" id="friends-empty">No users registered in directory. Customize your profile to appear here!</div>
                 </div>
             </div>
         </div>
@@ -426,36 +376,33 @@
         <div id="profile-page" class="page-view">
             <div class="grid">
                 <div class="sidebar">
-                    <img id="display-pic" src="https://via.placeholder.com/180/000000/ff007f?text=Upload+Pic" class="profile-pic" alt="Profile">
-                    <h2 id="display-name" style="color: #ff007f; margin: 10px 0 5px 0;">Night_Owl</h2>
+                    <img id="display-pic" src="https://via.placeholder.com/180/000000/ff007f?text=No+Photo" class="profile-pic" alt="Profile">
+                    <h2 id="display-name" style="color: #ff007f; margin: 10px 0 5px 0;">New User</h2>
                     <div id="display-badges" class="badge-container">
-                        <span class="badge badge-host">VIP Host</span>
-                        <span class="badge">Night Owl</span>
+                        <span class="badge">Member</span>
                     </div>
-                    <p id="display-status" style="color: #ff66b2; font-style: italic;">"Ready for the weekend."</p>
+                    <p id="display-status" style="color: #ff66b2; font-style: italic;">"No status set."</p>
                     <hr style="border-color: #ff007f;">
-                    <p><strong>Vibe:</strong> <span id="display-vibe">Synthwave / Retro</span></p>
-                    <p><strong>Location:</strong> <span id="display-location">Downtown</span></p>
+                    <p><strong>Vibe:</strong> <span id="display-vibe">Not specified</span></p>
+                    <p><strong>Location:</strong> <span id="display-location">Not specified</span></p>
+                    <button onclick="showPage('edit-profile-page')" style="font-size: 11px; padding: 6px; margin-top: 10px;">✏ Edit Profile</button>
                 </div>
 
                 <div>
                     <div class="box">
                         <div class="box-header">About Me</div>
-                        <p id="display-bio">Welcome to my After Hours profile. Check out the Party Announcements tab to see upcoming events or post your own!</p>
+                        <p id="display-bio">This profile has not been customized yet. Click Edit Profile or go to Customize to update your information.</p>
                     </div>
 
                     <div class="box">
-                        <div class="box-header">Profile Song / Audio Link</div>
-                        <p><strong>Now Playing:</strong> <span id="display-song">Midnight City - M83</span></p>
+                        <div class="box-header">Favorite Track</div>
+                        <p><strong>Track:</strong> <span id="display-song">None set</span></p>
                     </div>
 
                     <div class="box">
                         <div class="box-header">Guestbook Comments</div>
                         <div id="comments-list">
-                            <div class="comment">
-                                <span><strong style="color: #ff007f;">Alex:</strong> See you at the party this Saturday!</span>
-                                <button class="btn-danger admin-only" onclick="removeElement(this.parentElement)">Delete</button>
-                            </div>
+                            <div class="empty-notice" id="comments-empty">No comments yet.</div>
                         </div>
                         <br>
                         <input type="text" id="comment-input" placeholder="Leave a comment...">
@@ -469,25 +416,18 @@
         <div id="parties-page" class="page-view">
             <div class="box">
                 <div class="box-header">Host an Event / Post Party Announcement</div>
-                <input type="text" id="party-name" placeholder="Party Title (e.g. Rooftop Kickoff)">
+                <input type="text" id="party-name" placeholder="Party Title">
                 <input type="text" id="party-host" placeholder="Host Name">
-                <input type="text" id="party-date" placeholder="Date & Time (e.g. Fri, Aug 28 @ 9 PM)">
-                <input type="text" id="party-location" placeholder="Location / Area">
-                <textarea id="party-details" rows="3" placeholder="Details, dress code, entry requirements..."></textarea>
-                <button onclick="postParty()">Publish Party Post</button>
+                <input type="text" id="party-date" placeholder="Date & Time">
+                <input type="text" id="party-location" placeholder="Location">
+                <textarea id="party-details" rows="3" placeholder="Details, dress code, entry info..."></textarea>
+                <button onclick="postParty()">Publish Event</button>
             </div>
 
             <div class="box">
-                <div class="box-header">Upcoming Party Announcements</div>
+                <div class="box-header">Party Announcements</div>
                 <div id="parties-list">
-                    <div class="party-card">
-                        <div class="party-title">★ Retro Synth Night</div>
-                        <p><span class="badge badge-host">HOST</span> Night_Owl</p>
-                        <p><strong>When:</strong> Saturday @ 10:00 PM</p>
-                        <p><strong>Where:</strong> Club Neon / Main Stage</p>
-                        <p>Bring custom retro outfits. Hot pink and black dress code encouraged!</p>
-                        <button class="btn-danger admin-only" onclick="removeElement(this.parentElement)">[Host Delete Party]</button>
-                    </div>
+                    <div class="empty-notice" id="parties-empty">No upcoming party announcements posted.</div>
                 </div>
             </div>
         </div>
@@ -501,22 +441,22 @@
                 <input type="file" id="pic-upload" accept="image/*" onchange="uploadImage(event)">
                 
                 <label>Display Name:</label>
-                <input type="text" id="edit-name" value="Night_Owl">
+                <input type="text" id="edit-name" placeholder="Enter your display name">
                 
                 <label>Status Quote:</label>
-                <input type="text" id="edit-status" value="Ready for the weekend.">
+                <input type="text" id="edit-status" placeholder="Enter status quote">
                 
                 <label>Vibe / Music Style:</label>
-                <input type="text" id="edit-vibe" value="Synthwave / Retro">
+                <input type="text" id="edit-vibe" placeholder="e.g. Synthwave / EDM">
                 
                 <label>Location:</label>
-                <input type="text" id="edit-location" value="Downtown">
+                <input type="text" id="edit-location" placeholder="e.g. City or Area">
                 
                 <label>Favorite Song:</label>
-                <input type="text" id="edit-song" value="Midnight City - M83">
+                <input type="text" id="edit-song" placeholder="Song Name - Artist">
                 
                 <label>Bio / About Me:</label>
-                <textarea id="edit-bio" rows="4">Welcome to my After Hours profile. Check out the Party Announcements tab to see upcoming events or post your own!</textarea>
+                <textarea id="edit-bio" rows="4" placeholder="Write something about yourself..."></textarea>
                 
                 <button onclick="saveProfile()">Save Profile Changes</button>
             </div>
@@ -524,6 +464,12 @@
     </div>
 
     <script>
+        // Track active user profile state
+        let currentUserProfile = {
+            name: "New User",
+            vibe: "Not specified"
+        };
+
         function checkCode() {
             const input = document.getElementById('passcode-input').value;
             if (input === '2027') {
@@ -549,7 +495,7 @@
         function toggleAdminMode(enabled) {
             if (enabled) {
                 document.body.classList.add('is-admin');
-                alert("👑 Admin Controls Enabled. You have Host powers to delete posts and ban users.");
+                alert("Admin Mode Enabled.");
             } else {
                 document.body.classList.remove('is-admin');
             }
@@ -559,19 +505,49 @@
             if (elem) elem.remove();
         }
 
-        function banUser(elem, username) {
-            if (confirm(`Are you sure you want to ban ${username}?`)) {
-                elem.remove();
-                alert(`User ${username} has been banned.`);
+        function addFriendToDirectory(name, vibe) {
+            const emptyNotice = document.getElementById('friends-empty');
+            if (emptyNotice) emptyNotice.style.display = 'none';
+
+            const list = document.getElementById('friends-list');
+            
+            // Check if card for this user already exists, update or create new
+            let existingCard = list.querySelector(`[data-username="${name.toLowerCase()}"]`);
+            if (existingCard) {
+                existingCard.setAttribute('data-vibe', vibe.toLowerCase());
+                existingCard.querySelector('.friend-info div').innerHTML = `
+                    <strong>${name}</strong><br>
+                    <small style="color: #ff66b2;">Vibe: ${vibe}</small>
+                `;
+                return;
             }
+
+            const newFriend = document.createElement('div');
+            newFriend.className = 'friend-card';
+            newFriend.setAttribute('data-username', name.toLowerCase());
+            newFriend.setAttribute('data-vibe', vibe.toLowerCase());
+            newFriend.innerHTML = `
+                <div class="friend-info">
+                    <img src="${document.getElementById('display-pic').src}" class="friend-avatar" alt="${name}">
+                    <div>
+                        <strong>${name}</strong><br>
+                        <small style="color: #ff66b2;">Vibe: ${vibe}</small>
+                    </div>
+                </div>
+                <div>
+                    <button onclick="addFriend(this)" style="width: auto; padding: 6px 12px; font-size: 11px;">+ Add Friend</button>
+                    <button class="btn-danger admin-only" onclick="removeElement(this.parentElement.parentElement)">Remove</button>
+                </div>
+            `;
+            list.prepend(newFriend);
         }
 
         function filterFriends() {
             const query = document.getElementById('friend-search').value.toLowerCase();
             const cards = document.querySelectorAll('.friend-card');
             cards.forEach(card => {
-                const user = card.getAttribute('data-username').toLowerCase();
-                const vibe = card.getAttribute('data-vibe').toLowerCase();
+                const user = card.getAttribute('data-username') || '';
+                const vibe = card.getAttribute('data-vibe') || '';
                 if (user.includes(query) || vibe.includes(query)) {
                     card.style.display = 'flex';
                 } else {
@@ -581,7 +557,7 @@
         }
 
         function addFriend(btn) {
-            btn.innerText = '✓ Friend Added';
+            btn.innerText = '✓ Added';
             btn.style.backgroundColor = '#00ffcc';
             btn.style.color = '#000000';
             btn.disabled = true;
@@ -598,25 +574,51 @@
         }
 
         function saveProfile() {
-            document.getElementById('display-name').innerText = document.getElementById('edit-name').value;
-            document.getElementById('display-status').innerText = `"${document.getElementById('edit-status').value}"`;
-            document.getElementById('display-vibe').innerText = document.getElementById('edit-vibe').value;
-            document.getElementById('display-location').innerText = document.getElementById('edit-location').value;
-            document.getElementById('display-song').innerText = document.getElementById('edit-song').value;
-            document.getElementById('display-bio').innerText = document.getElementById('edit-bio').value;
+            const nameInput = document.getElementById('edit-name').value.trim();
+            const statusInput = document.getElementById('edit-status').value.trim();
+            const vibeInput = document.getElementById('edit-vibe').value.trim();
+            const locationInput = document.getElementById('edit-location').value.trim();
+            const songInput = document.getElementById('edit-song').value.trim();
+            const bioInput = document.getElementById('edit-bio').value.trim();
+
+            const name = nameInput !== "" ? nameInput : 'New User';
+            const status = statusInput !== "" ? statusInput : 'No status set.';
+            const vibe = vibeInput !== "" ? vibeInput : 'Not specified';
+            const location = locationInput !== "" ? locationInput : 'Not specified';
+            const song = songInput !== "" ? songInput : 'None set';
+            const bio = bioInput !== "" ? bioInput : 'This profile has not been customized yet.';
+
+            currentUserProfile.name = name;
+            currentUserProfile.vibe = vibe;
+
+            // Update Profile View Elements
+            document.getElementById('display-name').innerText = name;
+            document.getElementById('display-status').innerText = `"${status}"`;
+            document.getElementById('display-vibe').innerText = vibe;
+            document.getElementById('display-location').innerText = location;
+            document.getElementById('display-song').innerText = song;
+            document.getElementById('display-bio').innerText = bio;
             
-            alert('Profile updated!');
+            // Auto-fill host name on party tab for convenience
+            document.getElementById('party-host').value = name;
+
+            addFriendToDirectory(name, vibe);
+
+            alert('Profile updated successfully!');
             showPage('profile-page');
         }
 
         function postParty() {
             const title = document.getElementById('party-name').value;
-            const host = document.getElementById('party-host').value;
+            const host = document.getElementById('party-host').value || currentUserProfile.name;
             const date = document.getElementById('party-date').value;
             const loc = document.getElementById('party-location').value;
             const details = document.getElementById('party-details').value;
 
-            if (title && host) {
+            if (title) {
+                const emptyParties = document.getElementById('parties-empty');
+                if (emptyParties) emptyParties.style.display = 'none';
+
                 const list = document.getElementById('parties-list');
                 const newParty = document.createElement('div');
                 newParty.className = 'party-card';
@@ -626,30 +628,32 @@
                     <p><strong>When:</strong> ${date}</p>
                     <p><strong>Where:</strong> ${loc}</p>
                     <p>${details}</p>
-                    <button class="btn-danger admin-only" onclick="removeElement(this.parentElement)">[Host Delete Party]</button>
+                    <button class="btn-danger admin-only" onclick="removeElement(this.parentElement)">Delete Event</button>
                 `;
                 list.prepend(newParty);
 
                 document.getElementById('party-name').value = '';
-                document.getElementById('party-host').value = '';
                 document.getElementById('party-date').value = '';
                 document.getElementById('party-location').value = '';
                 document.getElementById('party-details').value = '';
 
-                alert('Party announcement posted!');
+                alert('Event posted!');
             } else {
-                alert('Please fill in at least the Title and Host Name.');
+                alert('Please enter an event title.');
             }
         }
 
         function addComment() {
             const input = document.getElementById('comment-input');
             if (input.value.trim() !== "") {
+                const emptyNotice = document.getElementById('comments-empty');
+                if (emptyNotice) emptyNotice.style.display = 'none';
+
                 const list = document.getElementById('comments-list');
                 const newComment = document.createElement('div');
                 newComment.className = 'comment';
                 newComment.innerHTML = `
-                    <span><strong style="color: #ff007f;">You:</strong> ${input.value}</span>
+                    <span><strong style="color: #ff007f;">${currentUserProfile.name}:</strong> ${input.value}</span>
                     <button class="btn-danger admin-only" onclick="removeElement(this.parentElement)">Delete</button>
                 `;
                 list.appendChild(newComment);
@@ -666,24 +670,20 @@
         function addSong() {
             const input = document.getElementById('song-input');
             if (input.value.trim() !== "") {
+                const emptyNotice = document.getElementById('queue-empty');
+                if (emptyNotice) emptyNotice.style.display = 'none';
+
                 const queue = document.getElementById('playlist-queue');
-                const count = queue.children.length + 1;
+                const count = queue.querySelectorAll('.playlist-item').length + 1;
                 const newItem = document.createElement('div');
                 newItem.className = 'playlist-item';
                 newItem.innerHTML = `
-                    <span>${count}. <strong>${input.value}</strong> <small>(Requested by: You)</small></span>
+                    <span>${count}. <strong>${input.value}</strong> <small>(by ${currentUserProfile.name})</small></span>
                     <button class="btn-danger admin-only" onclick="removeElement(this.parentElement)">Delete</button>
                 `;
                 queue.appendChild(newItem);
                 input.value = '';
             }
-        }
-
-        function addRSVP() {
-            const rsvpElem = document.getElementById('rsvp-count');
-            let current = parseInt(rsvpElem.innerText);
-            rsvpElem.innerText = current + 1;
-            alert("RSVP confirmed! See you there.");
         }
     </script>
 </body>
