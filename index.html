@@ -385,13 +385,12 @@
                     <hr style="border-color: #ff007f;">
                     <p><strong>Vibe:</strong> <span id="display-vibe">Not specified</span></p>
                     <p><strong>Location:</strong> <span id="display-location">Not specified</span></p>
-                    <button onclick="showPage('edit-profile-page')" style="font-size: 11px; padding: 6px; margin-top: 10px;">✏ Edit Profile</button>
                 </div>
 
                 <div>
                     <div class="box">
                         <div class="box-header">About Me</div>
-                        <p id="display-bio">This profile has not been customized yet. Click Edit Profile or go to Customize to update your information.</p>
+                        <p id="display-bio">This profile has not been customized yet. Click Customize to update your bio.</p>
                     </div>
 
                     <div class="box">
@@ -441,7 +440,7 @@
                 <input type="file" id="pic-upload" accept="image/*" onchange="uploadImage(event)">
                 
                 <label>Display Name:</label>
-                <input type="text" id="edit-name" placeholder="Enter your display name">
+                <input type="text" id="edit-name" placeholder="Enter display name">
                 
                 <label>Status Quote:</label>
                 <input type="text" id="edit-status" placeholder="Enter status quote">
@@ -464,12 +463,6 @@
     </div>
 
     <script>
-        // Track active user profile state
-        let currentUserProfile = {
-            name: "New User",
-            vibe: "Not specified"
-        };
-
         function checkCode() {
             const input = document.getElementById('passcode-input').value;
             if (input === '2027') {
@@ -510,18 +503,6 @@
             if (emptyNotice) emptyNotice.style.display = 'none';
 
             const list = document.getElementById('friends-list');
-            
-            // Check if card for this user already exists, update or create new
-            let existingCard = list.querySelector(`[data-username="${name.toLowerCase()}"]`);
-            if (existingCard) {
-                existingCard.setAttribute('data-vibe', vibe.toLowerCase());
-                existingCard.querySelector('.friend-info div').innerHTML = `
-                    <strong>${name}</strong><br>
-                    <small style="color: #ff66b2;">Vibe: ${vibe}</small>
-                `;
-                return;
-            }
-
             const newFriend = document.createElement('div');
             newFriend.className = 'friend-card';
             newFriend.setAttribute('data-username', name.toLowerCase());
@@ -574,24 +555,13 @@
         }
 
         function saveProfile() {
-            const nameInput = document.getElementById('edit-name').value.trim();
-            const statusInput = document.getElementById('edit-status').value.trim();
-            const vibeInput = document.getElementById('edit-vibe').value.trim();
-            const locationInput = document.getElementById('edit-location').value.trim();
-            const songInput = document.getElementById('edit-song').value.trim();
-            const bioInput = document.getElementById('edit-bio').value.trim();
+            const name = document.getElementById('edit-name').value || 'New User';
+            const status = document.getElementById('edit-status').value || 'No status set.';
+            const vibe = document.getElementById('edit-vibe').value || 'Not specified';
+            const location = document.getElementById('edit-location').value || 'Not specified';
+            const song = document.getElementById('edit-song').value || 'None set';
+            const bio = document.getElementById('edit-bio').value || 'No bio provided.';
 
-            const name = nameInput !== "" ? nameInput : 'New User';
-            const status = statusInput !== "" ? statusInput : 'No status set.';
-            const vibe = vibeInput !== "" ? vibeInput : 'Not specified';
-            const location = locationInput !== "" ? locationInput : 'Not specified';
-            const song = songInput !== "" ? songInput : 'None set';
-            const bio = bioInput !== "" ? bioInput : 'This profile has not been customized yet.';
-
-            currentUserProfile.name = name;
-            currentUserProfile.vibe = vibe;
-
-            // Update Profile View Elements
             document.getElementById('display-name').innerText = name;
             document.getElementById('display-status').innerText = `"${status}"`;
             document.getElementById('display-vibe').innerText = vibe;
@@ -599,23 +569,20 @@
             document.getElementById('display-song').innerText = song;
             document.getElementById('display-bio').innerText = bio;
             
-            // Auto-fill host name on party tab for convenience
-            document.getElementById('party-host').value = name;
-
             addFriendToDirectory(name, vibe);
 
-            alert('Profile updated successfully!');
+            alert('Profile saved!');
             showPage('profile-page');
         }
 
         function postParty() {
             const title = document.getElementById('party-name').value;
-            const host = document.getElementById('party-host').value || currentUserProfile.name;
+            const host = document.getElementById('party-host').value;
             const date = document.getElementById('party-date').value;
             const loc = document.getElementById('party-location').value;
             const details = document.getElementById('party-details').value;
 
-            if (title) {
+            if (title && host) {
                 const emptyParties = document.getElementById('parties-empty');
                 if (emptyParties) emptyParties.style.display = 'none';
 
@@ -633,13 +600,14 @@
                 list.prepend(newParty);
 
                 document.getElementById('party-name').value = '';
+                document.getElementById('party-host').value = '';
                 document.getElementById('party-date').value = '';
                 document.getElementById('party-location').value = '';
                 document.getElementById('party-details').value = '';
 
                 alert('Event posted!');
             } else {
-                alert('Please enter an event title.');
+                alert('Please enter at least Title and Host.');
             }
         }
 
@@ -653,7 +621,7 @@
                 const newComment = document.createElement('div');
                 newComment.className = 'comment';
                 newComment.innerHTML = `
-                    <span><strong style="color: #ff007f;">${currentUserProfile.name}:</strong> ${input.value}</span>
+                    <span><strong style="color: #ff007f;">User:</strong> ${input.value}</span>
                     <button class="btn-danger admin-only" onclick="removeElement(this.parentElement)">Delete</button>
                 `;
                 list.appendChild(newComment);
@@ -678,7 +646,7 @@
                 const newItem = document.createElement('div');
                 newItem.className = 'playlist-item';
                 newItem.innerHTML = `
-                    <span>${count}. <strong>${input.value}</strong> <small>(by ${currentUserProfile.name})</small></span>
+                    <span>${count}. <strong>${input.value}</strong></span>
                     <button class="btn-danger admin-only" onclick="removeElement(this.parentElement)">Delete</button>
                 `;
                 queue.appendChild(newItem);
