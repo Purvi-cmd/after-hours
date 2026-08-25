@@ -6,7 +6,7 @@
     <title>After Hours</title>
     <style>
         * { box-sizing: border-box; }
-        
+
         body {
             background-color: #000000;
             color: #ffffff;
@@ -73,6 +73,17 @@
             text-transform: uppercase;
         }
         button:hover { background-color: #ff66b2; }
+
+        .btn-secondary {
+            background-color: #222222;
+            color: #ff007f;
+            border: 1px solid #ff007f;
+            margin-top: 8px;
+        }
+        .btn-secondary:hover {
+            background-color: #ff007f;
+            color: #000000;
+        }
 
         .btn-danger {
             background-color: #ff3333;
@@ -278,10 +289,12 @@
     <div id="access-screen">
         <div class="login-box">
             <h1>AFTER HOURS</h1>
-            <p>Enter Passcode:</p>
-            <input type="password" id="passcode-input" placeholder="Passcode">
-            <button onclick="checkCode()">ENTER</button>
-            <div id="error" class="error-msg">ACCESS DENIED</div>
+            <p>Account Authentication:</p>
+            <input type="text" id="auth-email" placeholder="Email Address">
+            <input type="password" id="auth-password" placeholder="Password">
+            <button onclick="handleLogin()">LOGIN</button>
+            <button class="btn-secondary" onclick="handleSignUp()">CREATE ACCOUNT</button>
+            <div id="error" class="error-msg"></div>
         </div>
     </div>
 
@@ -295,7 +308,7 @@
                 <a onclick="showPage('profile-page')">[ Profile ]</a>
                 <a onclick="showPage('parties-page')">[ Parties ]</a>
                 <a onclick="showPage('edit-profile-page')">[ Customize ]</a>
-                <a onclick="lockSite()">[ Lock ]</a>
+                <a onclick="lockSite()">[ Logout ]</a>
                 <div class="admin-toggle-box">
                     <input type="checkbox" id="admin-mode-check" onchange="toggleAdminMode(this.checked)">
                     <label for="admin-mode-check"><b>Host Admin</b></label>
@@ -435,50 +448,168 @@
         <div id="edit-profile-page" class="page-view">
             <div class="box">
                 <div class="box-header">Customize Your Profile</div>
-                
+
                 <label>Profile Picture:</label>
                 <input type="file" id="pic-upload" accept="image/*" onchange="uploadImage(event)">
-                
+
                 <label>Display Name:</label>
                 <input type="text" id="edit-name" placeholder="Enter display name">
-                
+
                 <label>Status Quote:</label>
                 <input type="text" id="edit-status" placeholder="Enter status quote">
-                
+
                 <label>Vibe / Music Style:</label>
                 <input type="text" id="edit-vibe" placeholder="e.g. Synthwave / EDM">
-                
+
                 <label>Location:</label>
                 <input type="text" id="edit-location" placeholder="e.g. City or Area">
-                
+
                 <label>Favorite Song:</label>
                 <input type="text" id="edit-song" placeholder="Song Name - Artist">
-                
+
                 <label>Bio / About Me:</label>
                 <textarea id="edit-bio" rows="4" placeholder="Write something about yourself..."></textarea>
-                
+
                 <button onclick="saveProfile()">Save Profile Changes</button>
             </div>
         </div>
     </div>
 
+    <!-- FIREBASE CDN LIBRARIES -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
     <script>
-        function checkCode() {
-            const input = document.getElementById('passcode-input').value;
-            if (input === '2027') {
+        // FIREBASE INITIALIZATION WITH YOUR CREDENTIALS
+        const firebaseConfig = {
+            apiKey: "AIzaSyCGT0-xafdJCyZ0WHmNt4lmYxhkqPhMtCk",
+            authDomain: "afterhours-c2493.firebaseapp.com",
+            projectId: "afterhours-c2493",
+            storageBucket: "afterhours-c2493.firebasestorage.app",
+            messagingSenderId: "431477740069",
+            appId: "1:431477740069:web:6764f53768d070cc1ca5cc",
+            measurementId: "G-7EWR7FJY8G"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // AUTHENTICATION LISTENER
+        auth.onAuthStateChanged(async (user) => {
+            const errorDiv = document.getElementById('error');
+            if (user) {
                 document.getElementById('access-screen').style.display = 'none';
                 document.getElementById('main-site').style.display = 'block';
+                errorDiv.style.display = 'none';
+                loadUserProfile(user.uid);
             } else {
-                document.getElementById('error').style.display = 'block';
+                document.getElementById('main-site').style.display = 'none';
+                document.getElementById('access-screen').style.display = 'flex';
+            }
+        });
+
+        // AUTH HANDLERS
+        async function handleSignUp() {
+            const email = document.getElementById('auth-email').value.trim();
+            const password = document.getElementById('auth-password').value;
+            const errorDiv = document.getElementById('error');
+
+            try {
+                const cred = await auth.createUserWithEmailAndPassword(email, password);
+                await db.collection('profiles').doc(cred.user.uid).set({
+                    name: "New User",
+                    status: "No status set.",
+                    vibe: "Not specified",
+                    location: "Not specified",
+                    song: "None set",
+                    bio: "No bio provided."
+                });
+                alert("Account created!");
+            } catch (err) {
+                errorDiv.innerText = err.message;
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        async function handleLogin() {
+            const email = document.getElementById('auth-email').value.trim();
+            const password = document.getElementById('auth-password').value;
+            const errorDiv = document.getElementById('error');
+
+            try {
+                await auth.signInWithEmailAndPassword(email, password);
+            } catch (err) {
+                errorDiv.innerText = err.message;
+                errorDiv.style.display = 'block';
             }
         }
 
         function lockSite() {
-            document.getElementById('main-site').style.display = 'none';
-            document.getElementById('access-screen').style.display = 'flex';
-            document.getElementById('passcode-input').value = '';
+            auth.signOut();
         }
 
+        // DATABASE LOAD & SAVE FUNCTIONS
+        async function loadUserProfile(uid) {
+            try {
+                const doc = await db.collection('profiles').doc(uid).get();
+                if (doc.exists) {
+                    const data = doc.data();
+                    document.getElementById('display-name').innerText = data.name || 'New User';
+                    document.getElementById('display-status').innerText = `"${data.status || 'No status set.'}"`;
+                    document.getElementById('display-vibe').innerText = data.vibe || 'Not specified';
+                    document.getElementById('display-location').innerText = data.location || 'Not specified';
+                    document.getElementById('display-song').innerText = data.song || 'None set';
+                    document.getElementById('display-bio').innerText = data.bio || 'No bio provided.';
+
+                    document.getElementById('edit-name').value = data.name || '';
+                    document.getElementById('edit-status').value = data.status || '';
+                    document.getElementById('edit-vibe').value = data.vibe || '';
+                    document.getElementById('edit-location').value = data.location || '';
+                    document.getElementById('edit-song').value = data.song || '';
+                    document.getElementById('edit-bio').value = data.bio || '';
+
+                    addFriendToDirectory(data.name || 'New User', data.vibe || 'Not specified');
+                }
+            } catch (err) {
+                console.error("Error loading profile:", err);
+            }
+        }
+
+        async function saveProfile() {
+            const user = auth.currentUser;
+            if (!user) return;
+
+            const name = document.getElementById('edit-name').value.trim() || 'New User';
+            const status = document.getElementById('edit-status').value.trim() || 'No status set.';
+            const vibe = document.getElementById('edit-vibe').value.trim() || 'Not specified';
+            const location = document.getElementById('edit-location').value.trim() || 'Not specified';
+            const song = document.getElementById('edit-song').value.trim() || 'None set';
+            const bio = document.getElementById('edit-bio').value.trim() || 'No bio provided.';
+
+            try {
+                await db.collection('profiles').doc(user.uid).set({
+                    name, status, vibe, location, song, bio
+                }, { merge: true });
+
+                document.getElementById('display-name').innerText = name;
+                document.getElementById('display-status').innerText = `"${status}"`;
+                document.getElementById('display-vibe').innerText = vibe;
+                document.getElementById('display-location').innerText = location;
+                document.getElementById('display-song').innerText = song;
+                document.getElementById('display-bio').innerText = bio;
+
+                addFriendToDirectory(name, vibe);
+
+                alert('Profile saved!');
+                showPage('profile-page');
+            } catch (err) {
+                alert("Failed to save profile: " + err.message);
+            }
+        }
+
+        // NAVIGATION & UI LOGIC
         function showPage(pageId) {
             const pages = document.querySelectorAll('.page-view');
             pages.forEach(page => page.classList.remove('active'));
@@ -552,27 +683,6 @@
             if(event.target.files[0]) {
                 reader.readAsDataURL(event.target.files[0]);
             }
-        }
-
-        function saveProfile() {
-            const name = document.getElementById('edit-name').value || 'New User';
-            const status = document.getElementById('edit-status').value || 'No status set.';
-            const vibe = document.getElementById('edit-vibe').value || 'Not specified';
-            const location = document.getElementById('edit-location').value || 'Not specified';
-            const song = document.getElementById('edit-song').value || 'None set';
-            const bio = document.getElementById('edit-bio').value || 'No bio provided.';
-
-            document.getElementById('display-name').innerText = name;
-            document.getElementById('display-status').innerText = `"${status}"`;
-            document.getElementById('display-vibe').innerText = vibe;
-            document.getElementById('display-location').innerText = location;
-            document.getElementById('display-song').innerText = song;
-            document.getElementById('display-bio').innerText = bio;
-            
-            addFriendToDirectory(name, vibe);
-
-            alert('Profile saved!');
-            showPage('profile-page');
         }
 
         function postParty() {
