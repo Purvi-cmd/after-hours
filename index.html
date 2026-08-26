@@ -504,6 +504,8 @@
                 document.getElementById('main-site').style.display = 'block';
                 errorDiv.style.display = 'none';
                 loadUserProfile(user.uid);
+                loadParties();
+                loadFriendsDirectory();
             } else {
                 document.getElementById('main-site').style.display = 'none';
                 document.getElementById('access-screen').style.display = 'flex';
@@ -569,8 +571,6 @@
                     document.getElementById('edit-location').value = data.location || '';
                     document.getElementById('edit-song').value = data.song || '';
                     document.getElementById('edit-bio').value = data.bio || '';
-
-                    addFriendToDirectory(data.name || 'New User', data.vibe || 'Not specified');
                 }
             } catch (err) {
                 console.error("Error loading profile:", err);
@@ -600,12 +600,194 @@
                 document.getElementById('display-song').innerText = song;
                 document.getElementById('display-bio').innerText = bio;
 
-                addFriendToDirectory(name, vibe);
+                loadFriendsDirectory();
 
                 alert('Profile saved!');
                 showPage('profile-page');
             } catch (err) {
                 alert("Failed to save profile: " + err.message);
+            }
+        }
+
+        // PARTIES & RSVP PERSISTENCE
+        async function postParty() {
+            const title = document.getElementById('party-name').value.trim();
+            const host = document.getElementById('party-host').value.trim();
+            const date = document.getElementById('party-date').value.trim();
+            const loc = document.getElementById('party-location').value.trim();
+            const details = document.getElementById('party-details').value.trim();
+
+            if (!title || !host) {
+                alert('Please enter at least Title and Host.');
+                return;
+            }
+
+            try {
+                const partyData = {
+                    title, host, date, location: loc, details,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                const docRef = await db.collection('parties').add(partyData);
+                renderPartyCard(docRef.id, partyData);
+
+                document.getElementById('party-name').value = '';
+                document.getElementById('party-host').value = '';
+                document.getElementById('party-date').value = '';
+                document.getElementById('party-location').value = '';
+                document.getElementById('party-details').value = '';
+
+                alert('Event posted!');
+            } catch (err) {
+                alert('Failed to post event: ' + err.message);
+            }
+        }
+
+        async function loadParties() {
+            try {
+                const list = document.getElementById('parties-list');
+                const emptyParties = document.getElementById('parties-empty');
+                const snapshot = await db.collection('parties').orderBy('createdAt', 'desc').get();
+
+                if (!snapshot.empty && emptyParties) emptyParties.style.display = 'none';
+
+                list.innerHTML = '';
+                snapshot.forEach(doc => {
+                    renderPartyCard(doc.id, doc.data());
+                });
+            } catch (err) {
+                console.error("Error loading parties:", err);
+            }
+        }
+
+        function renderPartyCard(partyId, data) {
+            const emptyParties = document.getElementById('parties-empty');
+            if (emptyParties) emptyParties.style.display = 'none';
+
+            const list = document.getElementById('parties-list');
+            const newParty = document.createElement('div');
+            newParty.className = 'party-card';
+            newParty.id = `party-${partyId}`;
+            newParty.innerHTML = `
+                <div class="party-title">★ ${data.title}</div>
+                <p><span class="badge badge-host">HOST</span> ${data.host}</p>
+                <p><strong>When:</strong> ${data.date}</p>
+                <p><strong>Where:</strong> ${data.location}</p>
+                <p>${data.details}</p>
+                <button onclick="rsvpToParty('${partyId}')" style="width: auto; padding: 6px 12px; margin-top: 5px;">RSVP</button>
+                <span id="rsvp-count-${partyId}" style="margin-left: 10px; font-size: 12px; color: #ff007f;">0 Attending</span>
+                <button class="btn-danger admin-only" onclick="deleteParty('${partyId}')">Delete Event</button>
+            `;
+            list.appendChild(newParty);
+            loadRSVPs(partyId);
+        }
+
+        async function rsvpToParty(partyId) {
+            const user = auth.currentUser;
+            if (!user) return alert("You must be logged in to RSVP.");
+
+            try {
+                await db.collection('parties').doc(partyId).collection('rsvps').doc(user.uid).set({
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                alert("RSVP Confirmed!");
+                loadRSVPs(partyId);
+            } catch (err) {
+                alert("RSVP failed: " + err.message);
+            }
+        }
+
+        async function loadRSVPs(partyId) {
+            try {
+                const snapshot = await db.collection('parties').doc(partyId).collection('rsvps').get();
+                const countElem = document.getElementById(`rsvp-count-${partyId}`);
+                if (countElem) {
+                    countElem.innerText = `${snapshot.size} Attending`;
+                }
+            } catch (err) {
+                console.error("Error loading RSVPs:", err);
+            }
+        }
+
+        async function deleteParty(partyId) {
+            try {
+                await db.collection('parties').doc(partyId).delete();
+                const partyElem = document.getElementById(`party-${partyId}`);
+                if (partyElem) partyElem.remove();
+            } catch (err) {
+                alert("Failed to delete event: " + err.message);
+            }
+        }
+
+        // FRIENDS PERSISTENCE
+        async function loadFriendsDirectory() {
+            try {
+                const list = document.getElementById('friends-list');
+                const emptyNotice = document.getElementById('friends-empty');
+                const currentUser = auth.currentUser;
+
+                const snapshot = await db.collection('profiles').get();
+                if (!snapshot.empty && emptyNotice) emptyNotice.style.display = 'none';
+
+                list.innerHTML = '';
+                for (const doc of snapshot.docs) {
+                    if (doc.id !== currentUser?.uid) {
+                        const data = doc.data();
+                        await renderFriendCard(doc.id, data);
+                    }
+                }
+            } catch (err) {
+                console.error("Error loading directory:", err);
+            }
+        }
+
+        async function renderFriendCard(friendUid, data) {
+            const list = document.getElementById('friends-list');
+            const currentUser = auth.currentUser;
+
+            let isFriend = false;
+            if (currentUser) {
+                const friendDoc = await db.collection('profiles').doc(currentUser.uid).collection('friends').doc(friendUid).get();
+                isFriend = friendDoc.exists;
+            }
+
+            const card = document.createElement('div');
+            card.className = 'friend-card';
+            card.setAttribute('data-username', (data.name || '').toLowerCase());
+            card.setAttribute('data-vibe', (data.vibe || '').toLowerCase());
+            card.innerHTML = `
+                <div class="friend-info">
+                    <div>
+                        <strong>${data.name || 'User'}</strong><br>
+                        <small style="color: #ff66b2;">Vibe: ${data.vibe || 'Not specified'}</small>
+                    </div>
+                </div>
+                <div>
+                    <button onclick="addFriend(this, '${friendUid}')" 
+                            style="width: auto; padding: 6px 12px; font-size: 11px; ${isFriend ? 'background-color: #00ffcc; color: #000000;' : ''}" 
+                            ${isFriend ? 'disabled' : ''}>
+                        ${isFriend ? '✓ Added' : '+ Add Friend'}
+                    </button>
+                </div>
+            `;
+            list.appendChild(card);
+        }
+
+        async function addFriend(btn, friendUid) {
+            const user = auth.currentUser;
+            if (!user) return;
+
+            try {
+                await db.collection('profiles').doc(user.uid).collection('friends').doc(friendUid).set({
+                    addedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                btn.innerText = '✓ Added';
+                btn.style.backgroundColor = '#00ffcc';
+                btn.style.color = '#000000';
+                btn.disabled = true;
+            } catch (err) {
+                alert("Failed to add friend: " + err.message);
             }
         }
 
@@ -629,31 +811,6 @@
             if (elem) elem.remove();
         }
 
-        function addFriendToDirectory(name, vibe) {
-            const emptyNotice = document.getElementById('friends-empty');
-            if (emptyNotice) emptyNotice.style.display = 'none';
-
-            const list = document.getElementById('friends-list');
-            const newFriend = document.createElement('div');
-            newFriend.className = 'friend-card';
-            newFriend.setAttribute('data-username', name.toLowerCase());
-            newFriend.setAttribute('data-vibe', vibe.toLowerCase());
-            newFriend.innerHTML = `
-                <div class="friend-info">
-                    <img src="${document.getElementById('display-pic').src}" class="friend-avatar" alt="${name}">
-                    <div>
-                        <strong>${name}</strong><br>
-                        <small style="color: #ff66b2;">Vibe: ${vibe}</small>
-                    </div>
-                </div>
-                <div>
-                    <button onclick="addFriend(this)" style="width: auto; padding: 6px 12px; font-size: 11px;">+ Add Friend</button>
-                    <button class="btn-danger admin-only" onclick="removeElement(this.parentElement.parentElement)">Remove</button>
-                </div>
-            `;
-            list.prepend(newFriend);
-        }
-
         function filterFriends() {
             const query = document.getElementById('friend-search').value.toLowerCase();
             const cards = document.querySelectorAll('.friend-card');
@@ -668,13 +825,6 @@
             });
         }
 
-        function addFriend(btn) {
-            btn.innerText = '✓ Added';
-            btn.style.backgroundColor = '#00ffcc';
-            btn.style.color = '#000000';
-            btn.disabled = true;
-        }
-
         function uploadImage(event) {
             const reader = new FileReader();
             reader.onload = function() {
@@ -682,42 +832,6 @@
             };
             if(event.target.files[0]) {
                 reader.readAsDataURL(event.target.files[0]);
-            }
-        }
-
-        function postParty() {
-            const title = document.getElementById('party-name').value;
-            const host = document.getElementById('party-host').value;
-            const date = document.getElementById('party-date').value;
-            const loc = document.getElementById('party-location').value;
-            const details = document.getElementById('party-details').value;
-
-            if (title && host) {
-                const emptyParties = document.getElementById('parties-empty');
-                if (emptyParties) emptyParties.style.display = 'none';
-
-                const list = document.getElementById('parties-list');
-                const newParty = document.createElement('div');
-                newParty.className = 'party-card';
-                newParty.innerHTML = `
-                    <div class="party-title">★ ${title}</div>
-                    <p><span class="badge badge-host">HOST</span> ${host}</p>
-                    <p><strong>When:</strong> ${date}</p>
-                    <p><strong>Where:</strong> ${loc}</p>
-                    <p>${details}</p>
-                    <button class="btn-danger admin-only" onclick="removeElement(this.parentElement)">Delete Event</button>
-                `;
-                list.prepend(newParty);
-
-                document.getElementById('party-name').value = '';
-                document.getElementById('party-host').value = '';
-                document.getElementById('party-date').value = '';
-                document.getElementById('party-location').value = '';
-                document.getElementById('party-details').value = '';
-
-                alert('Event posted!');
-            } else {
-                alert('Please enter at least Title and Host.');
             }
         }
 
