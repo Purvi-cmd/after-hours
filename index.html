@@ -25,7 +25,7 @@
             text-decoration: underline;
         }
 
-        #access-screen {
+        #access-screen, #passcode-screen {
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -33,6 +33,8 @@
             height: 100vh;
             background-color: #000000;
         }
+
+        #passcode-screen { display: none; }
 
         .login-box {
             border: 2px solid #ff007f;
@@ -238,17 +240,24 @@
             gap: 12px;
         }
 
-        .friend-avatar {
-            width: 45px;
-            height: 45px;
-            border: 1px solid #ff007f;
-            object-fit: cover;
-        }
-
         .party-title {
             color: #ff007f;
             font-size: 18px;
             font-weight: bold;
+        }
+
+        .rsvp-list-box {
+            margin-top: 10px;
+            padding: 8px;
+            background-color: #000000;
+            border: 1px dashed #ff007f;
+            font-size: 12px;
+        }
+
+        .rsvp-user-item {
+            color: #ff66b2;
+            padding: 3px 0;
+            border-bottom: 1px dotted #333;
         }
 
         .comment, .playlist-item {
@@ -280,12 +289,11 @@
 
         .admin-only { display: none; }
         body.is-admin .admin-only { display: inline-block !important; }
-        body.is-admin .admin-block { display: block !important; }
     </style>
 </head>
 <body>
 
-    <!-- ACCESS GATE -->
+    <!-- STAGE 1: ACCOUNT LOGIN / SIGNUP -->
     <div id="access-screen">
         <div class="login-box">
             <h1>AFTER HOURS</h1>
@@ -295,6 +303,17 @@
             <button onclick="handleLogin()">LOGIN</button>
             <button class="btn-secondary" onclick="handleSignUp()">CREATE ACCOUNT</button>
             <div id="error" class="error-msg"></div>
+        </div>
+    </div>
+
+    <!-- STAGE 2: PASSCODE GATE -->
+    <div id="passcode-screen">
+        <div class="login-box">
+            <h1>PASSCODE REQUIRED</h1>
+            <p>Enter 4-Digit Event Code:</p>
+            <input type="password" id="passcode-input" placeholder="Passcode" maxlength="4">
+            <button onclick="verifyPasscode()">ENTER SITE</button>
+            <div id="passcode-error" class="error-msg">Incorrect Passcode. Try again.</div>
         </div>
     </div>
 
@@ -319,7 +338,6 @@
         <!-- HOME PAGE -->
         <div id="home-page" class="page-view active">
             <div class="grid">
-                <!-- Sidebar Tools -->
                 <div>
                     <div class="box">
                         <div class="box-header">⚡ Live Vibe Check</div>
@@ -347,7 +365,6 @@
                     </div>
                 </div>
 
-                <!-- Main Feed & Music Queue -->
                 <div>
                     <div class="box">
                         <div class="box-header">🎵 Crowd DJ Playlist Queue</div>
@@ -404,6 +421,14 @@
                     <div class="box">
                         <div class="box-header">About Me</div>
                         <p id="display-bio">This profile has not been customized yet. Click Customize to update your bio.</p>
+                    </div>
+
+                    <!-- MY HOSTED PARTIES SECTION -->
+                    <div class="box">
+                        <div class="box-header">🎉 My Hosted Parties & Guest RSVPs</div>
+                        <div id="my-hosted-parties-list">
+                            <div class="empty-notice" id="my-parties-empty">You haven't posted any parties yet.</div>
+                        </div>
                     </div>
 
                     <div class="box">
@@ -481,7 +506,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
     <script>
-        // FIREBASE INITIALIZATION WITH YOUR CREDENTIALS
         const firebaseConfig = {
             apiKey: "AIzaSyCGT0-xafdJCyZ0WHmNt4lmYxhkqPhMtCk",
             authDomain: "afterhours-c2493.firebaseapp.com",
@@ -496,21 +520,51 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
+        let isPasscodeVerified = false;
+
         // AUTHENTICATION LISTENER
         auth.onAuthStateChanged(async (user) => {
             const errorDiv = document.getElementById('error');
             if (user) {
                 document.getElementById('access-screen').style.display = 'none';
-                document.getElementById('main-site').style.display = 'block';
                 errorDiv.style.display = 'none';
-                loadUserProfile(user.uid);
-                loadParties();
-                loadFriendsDirectory();
+
+                if (!isPasscodeVerified) {
+                    document.getElementById('passcode-screen').style.display = 'flex';
+                    document.getElementById('main-site').style.display = 'none';
+                } else {
+                    showMainApp(user.uid);
+                }
             } else {
+                isPasscodeVerified = false;
                 document.getElementById('main-site').style.display = 'none';
+                document.getElementById('passcode-screen').style.display = 'none';
                 document.getElementById('access-screen').style.display = 'flex';
             }
         });
+
+        function verifyPasscode() {
+            const input = document.getElementById('passcode-input').value;
+            const error = document.getElementById('passcode-error');
+
+            if (input === "2027") {
+                isPasscodeVerified = true;
+                error.style.display = 'none';
+                document.getElementById('passcode-screen').style.display = 'none';
+                const user = auth.currentUser;
+                if (user) showMainApp(user.uid);
+            } else {
+                error.style.display = 'block';
+            }
+        }
+
+        function showMainApp(uid) {
+            document.getElementById('main-site').style.display = 'block';
+            loadUserProfile(uid);
+            loadParties();
+            loadFriendsDirectory();
+            loadMyHostedParties(uid);
+        }
 
         // AUTH HANDLERS
         async function handleSignUp() {
@@ -521,6 +575,7 @@
             try {
                 const cred = await auth.createUserWithEmailAndPassword(email, password);
                 await db.collection('profiles').doc(cred.user.uid).set({
+                    email: email,
                     name: "New User",
                     status: "No status set.",
                     vibe: "Not specified",
@@ -549,10 +604,12 @@
         }
 
         function lockSite() {
+            isPasscodeVerified = false;
+            document.getElementById('passcode-input').value = '';
             auth.signOut();
         }
 
-        // DATABASE LOAD & SAVE FUNCTIONS
+        // PROFILE DATA
         async function loadUserProfile(uid) {
             try {
                 const doc = await db.collection('profiles').doc(uid).get();
@@ -609,8 +666,11 @@
             }
         }
 
-        // PARTIES & RSVP PERSISTENCE
+        // PARTIES & RSVPs
         async function postParty() {
+            const user = auth.currentUser;
+            if (!user) return;
+
             const title = document.getElementById('party-name').value.trim();
             const host = document.getElementById('party-host').value.trim();
             const date = document.getElementById('party-date').value.trim();
@@ -624,12 +684,14 @@
 
             try {
                 const partyData = {
+                    hostUid: user.uid,
                     title, host, date, location: loc, details,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
 
                 const docRef = await db.collection('parties').add(partyData);
                 renderPartyCard(docRef.id, partyData);
+                loadMyHostedParties(user.uid);
 
                 document.getElementById('party-name').value = '';
                 document.getElementById('party-host').value = '';
@@ -687,11 +749,17 @@
             if (!user) return alert("You must be logged in to RSVP.");
 
             try {
+                const profileDoc = await db.collection('profiles').doc(user.uid).get();
+                const userName = profileDoc.exists ? (profileDoc.data().name || user.email) : user.email;
+
                 await db.collection('parties').doc(partyId).collection('rsvps').doc(user.uid).set({
+                    userName: userName,
+                    userEmail: user.email,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 alert("RSVP Confirmed!");
                 loadRSVPs(partyId);
+                loadMyHostedParties(user.uid);
             } catch (err) {
                 alert("RSVP failed: " + err.message);
             }
@@ -709,6 +777,68 @@
             }
         }
 
+        // MY HOSTED PARTIES (PROFILE PAGE)
+        async function loadMyHostedParties(uid) {
+            try {
+                const list = document.getElementById('my-hosted-parties-list');
+                const emptyNotice = document.getElementById('my-parties-empty');
+
+                const snapshot = await db.collection('parties').where('hostUid', '==', uid).get();
+
+                if (snapshot.empty) {
+                    if (emptyNotice) emptyNotice.style.display = 'block';
+                    list.innerHTML = '<div class="empty-notice">You haven\'t posted any parties yet.</div>';
+                    return;
+                }
+
+                if (emptyNotice) emptyNotice.style.display = 'none';
+                list.innerHTML = '';
+
+                snapshot.forEach(async (doc) => {
+                    const data = doc.data();
+                    const partyBox = document.createElement('div');
+                    partyBox.className = 'party-card';
+                    partyBox.innerHTML = `
+                        <div class="party-title">★ ${data.title}</div>
+                        <p><strong>When:</strong> ${data.date} | <strong>Where:</strong> ${data.location}</p>
+                        <button onclick="toggleRSVPDetails('${doc.id}')" style="width: auto; padding: 4px 8px; font-size: 11px; margin-top: 5px;">View Guests RSVP'd</button>
+                        <div id="rsvp-details-${doc.id}" class="rsvp-list-box" style="display: none;">
+                            <strong>Guest List:</strong>
+                            <div id="rsvp-names-${doc.id}">Loading...</div>
+                        </div>
+                    `;
+                    list.appendChild(partyBox);
+                });
+            } catch (err) {
+                console.error("Error loading hosted parties:", err);
+            }
+        }
+
+        async function toggleRSVPDetails(partyId) {
+            const detailsDiv = document.getElementById(`rsvp-details-${partyId}`);
+            const namesDiv = document.getElementById(`rsvp-names-${partyId}`);
+
+            if (detailsDiv.style.display === 'none') {
+                detailsDiv.style.display = 'block';
+                const snapshot = await db.collection('parties').doc(partyId).collection('rsvps').get();
+
+                if (snapshot.empty) {
+                    namesDiv.innerHTML = '<span style="color: #666;">No guests have RSVP\'d yet.</span>';
+                } else {
+                    namesDiv.innerHTML = '';
+                    snapshot.forEach(doc => {
+                        const rsvpData = doc.data();
+                        const nameItem = document.createElement('div');
+                        nameItem.className = 'rsvp-user-item';
+                        nameItem.innerText = `• ${rsvpData.userName || 'Guest'} (${rsvpData.userEmail || 'No Email'})`;
+                        namesDiv.appendChild(nameItem);
+                    });
+                }
+            } else {
+                detailsDiv.style.display = 'none';
+            }
+        }
+
         async function deleteParty(partyId) {
             try {
                 await db.collection('parties').doc(partyId).delete();
@@ -719,7 +849,7 @@
             }
         }
 
-        // FRIENDS PERSISTENCE
+        // FRIENDS DIRECTORY
         async function loadFriendsDirectory() {
             try {
                 const list = document.getElementById('friends-list');
@@ -791,7 +921,7 @@
             }
         }
 
-        // NAVIGATION & UI LOGIC
+        // NAVIGATION & UI
         function showPage(pageId) {
             const pages = document.querySelectorAll('.page-view');
             pages.forEach(page => page.classList.remove('active'));
